@@ -1,11 +1,14 @@
 FROM python:2.7.18
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-COPY ./notejam ./home
-COPY requirements.txt ./home
+WORKDIR /usr/src/app
 
-RUN pip install -r ./home/requirements.txt
+COPY notejam ./notejam
+COPY requirements.txt .
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
-RUN ./home/manage.py makemigrations && \
-    ./home/manage.py migrate
+RUN pip install -r requirements.txt
 
-ENTRYPOINT [ "./home/manage.py", "runserver", "0.0.0.0:8000" ]
+ENTRYPOINT [ "./entrypoint.sh"]
