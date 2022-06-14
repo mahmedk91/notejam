@@ -88,7 +88,7 @@ Resources:
   Service:
     Type: AWS::ECS::Service
     DependsOn:
-      - ListenerHTTPS
+      - ListenerHTTP
     Properties: 
       ServiceName: !Ref ServiceName
       Cluster: !Ref Cluster
@@ -156,29 +156,12 @@ Resources:
           Value: 60
       TargetType: ip
       VpcId: !Ref VPC
-  ListenerHTTPS:
+  ListenerHTTP:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup        
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 443
-      Protocol: HTTPS
-      Certificates:
-        - CertificateArn: !Ref Certificate
-  ListenerHTTP:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-        - Type: redirect
-          RedirectConfig:
-            Host: "#{host}"
-            Path: "/#{path}"
-            Port: 443
-            Protocol: "HTTPS"
-            Query: "#{query}"
-            StatusCode: HTTP_301
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
@@ -272,10 +255,6 @@ Resources:
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
@@ -283,4 +262,4 @@ Resources:
 Outputs:
   Endpoint:
     Description: Endpoint
-    Value: !Join ['', ['https://', !Ref DNSRecord]]
+    Value: !Join ['', ['http://', !Ref DNSRecord]]
