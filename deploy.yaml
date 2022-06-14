@@ -3,16 +3,22 @@ Description: An example CloudFormation template for Fargate.
 Parameters:
   VPC:
     Type: AWS::EC2::VPC::Id
+    Default: vpc-00000000000000000
   SubnetA:
     Type: AWS::EC2::Subnet::Id
+    Default: subnet-00000000000000000
   SubnetB:
     Type: AWS::EC2::Subnet::Id
+    Default: subnet-00000000000000000
   Certificate:
     Type: String
-    Default: 'arn:aws:acm:region:123456789012:certificate/00000000-0000-0000-0000-000000000000'
+    Default: 'arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000'
+  KMSEncriptionKeyARN:
+    Type: String
+    Default: 'arn:aws:kms:eu-west-1:000000000000:key/00000000-0000-0000-0000-000000000000'
   Image:
     Type: String
-    Default: 123456789012.dkr.ecr.region.amazonaws.com/image:tag
+    Default: 000000000000.dkr.ecr.eu-west-1.amazonaws.com/notejam:latest
   ServiceName:
     Type: String
     Default: notejam
@@ -24,7 +30,7 @@ Parameters:
     Default: /signin/
   HostedZoneName:
     Type: String
-    Default: company.com
+    Default: test.notejam.com
   MinContainers:
     Type: Number
     Default: 1
@@ -47,17 +53,7 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
-      # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
-      # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
-      # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
-      # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
       Cpu: 256
-      # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
-      # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
-      # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
-      # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
-      # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
       Memory: 0.5GB
       ExecutionRoleArn: !Ref ExecutionRole
       TaskRoleArn: !Ref TaskRole
@@ -72,6 +68,20 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-group: !Ref LogGroup
               awslogs-stream-prefix: ecs
+          Environment:
+            - Name: DB_NAME
+              Value: notejam
+            - Name: DB_PORT
+              Value: 5432
+            - Name: DB_ENGINE
+              Value: django.db.backends.postgresql_psycopg2
+          Secrets:
+            - Name: DB_HOST
+              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notejam/DB_HOST"
+            - Name: DB_USER
+              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notejam/DB_USER"
+            - Name: DB_PASS
+              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notejam/DB_PASS"
 
   #############
   # IAM ROLES #
@@ -88,6 +98,18 @@ Resources:
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+      Policies:
+        - PolicyName: NotejamECSExecutionRolePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                  - kms:Decrypt
+                Resource:
+                  - !Sub arn:aws:kms:${AWS::Region}:${AWS::AccountId}:key/${KMSEncriptionKeyARN}
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/notejam/*
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
