@@ -10,9 +10,6 @@ Parameters:
   SubnetB:
     Type: AWS::EC2::Subnet::Id
     Default: subnet-00000000000000000
-  Certificate:
-    Type: String
-    Default: 'arn:aws:acm:eu-west-1:000000000000:certificate/00000000-0000-0000-0000-000000000000'
   KMSEncriptionKeyARN:
     Type: String
     Default: 'arn:aws:kms:eu-west-1:000000000000:key/00000000-0000-0000-0000-000000000000'
